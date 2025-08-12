@@ -23,7 +23,34 @@ import os
 import supervisor
 import board
 import displayio
-import adafruit_logging as logging
+try:
+    import adafruit_logging as logging
+except ImportError:
+    class Logger(object):
+        """A dummy logger class for compatibility."""
+        def __init__(self):
+            pass
+
+        @staticmethod
+        def hasHandlers():
+            return True
+
+        @staticmethod
+        def setLevel(level):
+            return True
+
+        @staticmethod
+        def debug(msg, *args):
+            print(msg % args)
+
+    class logging(object):
+        """A dummy logging class for compatibility."""
+        DEBUG = 10
+
+        @staticmethod
+        def getLogger(name):
+            _logger = Logger()
+            return _logger
 
 try:
     import usb.core
