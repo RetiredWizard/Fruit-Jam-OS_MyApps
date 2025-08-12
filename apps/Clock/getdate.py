@@ -136,6 +136,8 @@ if __name__ != "PyDOS":
     elif "launcher.conf.json" in os.listdir("/"):
         with open("/launcher.conf.json", "r") as f:
             launcher_config = json.load(f)
+    if 'inetclock' in launcher_config:
+        launcher_config = launcher_config['inetclock']
 
     if 'tz_offset' in launcher_config:
         if type(launcher_config['tz_offset']) is str:
