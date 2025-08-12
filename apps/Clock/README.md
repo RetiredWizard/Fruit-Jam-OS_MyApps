@@ -1,4 +1,4 @@
-# Internet Clock
+# Internet Weather Clock
 
 The Internet Clock app files in this folder add the app to the Fruit Jam OS application list, however the *clock.py* program (along with the *pydos* **lib** files and the **fonts** folder) will run on many CircuitPython boards. I have run it on display boards varying from the LILYGO T-Watch-2020, an ESP32 Cheap Yellow Display, Dot Clock displays like the HackTablet, Adafruit TFT FeatherWings and S3 RGB Matrix Portal displays.  
 
