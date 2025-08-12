@@ -6,3 +6,7 @@ Simply copy the desired application from this repository's "apps" folder to the 
 
     
 [PyBasic](https://github.com/richpl/PyBasic)    ![PyBasic](https://github.com/RetiredWizard/Fruit-Jam-OS_MyApps/blob/main/apps/PyBasic/PyBasic.bmp)  
+  
+    
+Inet Clock    ![Inet Clock](https://github.com/RetiredWizard/Fruit-Jam-OS_MyApps/blob/main/apps/Clock/icon.bmp)  
+
