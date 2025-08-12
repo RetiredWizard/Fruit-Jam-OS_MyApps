@@ -128,15 +128,15 @@ def getdate(passedIn=""):
 
 
 # optional configuration file for speaker/headphone setting, check current and root directory
-launcher_config = {}
-if "launcher.conf.json" in os.listdir():
-    with open("launcher.conf.json", "r") as f:
-        launcher_config = json.load(f)
-elif "launcher.conf.json" in os.listdir("/"):
-    with open("/launcher.conf.json", "r") as f:
-        launcher_config = json.load(f)
-
 if __name__ != "PyDOS":
+    launcher_config = {}
+    if "launcher.conf.json" in os.listdir():
+        with open("launcher.conf.json", "r") as f:
+            launcher_config = json.load(f)
+    elif "launcher.conf.json" in os.listdir("/"):
+        with open("/launcher.conf.json", "r") as f:
+            launcher_config = json.load(f)
+
     if 'tz_offset' in launcher_config:
         if type(launcher_config['tz_offset']) is str:
             passedIn = launcher_config['tz_offset']
