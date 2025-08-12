@@ -153,6 +153,8 @@ elif pathlib.Path("/launcher.conf.json").exists():
     with open("/launcher.conf.json", "r") as f:
         launcher_config = json.load(f)
 print(launcher_config)
+if 'inetclock' in launcher_config:
+    launcher_config = launcher_config['inetclock']
 
 if 'weatherunderground' in launcher_config:
     WU_stationID = launcher_config['weatherunderground'].get('stationID', 'KMABOSTO365')

@@ -1,8 +1,8 @@
 # Internet Weather Clock
 
-The Internet Clock app files in this folder add the app to the Fruit Jam OS application list, however the *clock.py* program (along with the *pydos* **lib** files and the **fonts** folder) will run on many CircuitPython boards. I have run it on display boards varying from the [LILYGO T-Watch-2020](https://lilygo.cc/products/t-watch-2020-v3?srsl), an ESP32 [Cheap Yellow Display](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display), Dot Clock displays like the [7" MaTouch Parallel TFT](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-7-inch.html), [Adafruit TFT FeatherWings](https://www.adafruit.com/product/3651) and [S3 RGB Matrix Portal displays](https://www.adafruit.com/product/5778). To run on devices other than the Fruit Jam, you may need to add additional adafruit libraries and/or support files from [PyDOS](https://github.com/RetiredWizard/PyDOS).  
+The files in this folder will add the Internet Clock app to the Fruit Jam OS application list, however the *clock.py* program (along with the *pydos* **lib** files and the **fonts** folder) will run on many CircuitPython boards. I have run it on display boards varying from the [LILYGO T-Watch-2020](https://lilygo.cc/products/t-watch-2020-v3?srsl), an ESP32 [Cheap Yellow Display](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display), Dot Clock displays like the [7" MaTouch Parallel TFT](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-7-inch.html), [Adafruit TFT FeatherWings](https://www.adafruit.com/product/3651) and [S3 RGB Matrix Portal displays](https://www.adafruit.com/product/5778). To run on devices other than the Fruit Jam, you may need to add additional adafruit libraries and/or support files from [PyDOS](https://github.com/RetiredWizard/PyDOS).  
 
-The clock is a digital clock displaying the day of the week, time, current temperature and weather forecast from weather.gov
+The clock is a digital clock displaying the day of the week, time, current temperature and weather forecast from weather.gov and weatherunderground.com.
 
 By default the time and weather is provided for the Boston, MA area however the time zone and weather station locations can be customized using a launcher.conf.json file. The application will search the current folder the app is running from first and then check the root folder for the launcher.conf.json file.
 
@@ -38,25 +38,30 @@ By using the mini map on the [weather.gov](https://www.weather.gov) site and cli
 ------------------------------
 ## Example launcher.conf.json file  
 
+The "inetclock" dictionary label is optional but allows easier combination with other app launcher.conf.json settings should a single shared file be used from the root folder.
+
 ```json
 {
-    "tz_offset": -4,
-    "brightness": 0,
+    "inetclock": {
 
-    "weatherunderground": {
-        "stationID": "KMABOSTO365",
-        "stationLbl": "Boston"
-    },
+        "tz_offset": -4,
+        "brightness": 0,
 
-    "weathergov": {
-        "lat": 42.3555,
-        "long": -71.0565,
-        "stationID1": "KBOS",
-        "stationLbl1": "Logan",
-        "stationID2": "KORH",
-        "stationLbl2": "Worcester",
-        "stationID3": "KOWD",
-        "stationLbl3": "Norwood"
+        "weatherunderground": {
+            "stationID": "KMABOSTO365",
+            "stationLbl": "Boston"
+        },
+
+        "weathergov": {
+            "lat": 42.3555,
+            "long": -71.0565,
+            "stationID1": "KBOS",
+            "stationLbl1": "Logan",
+            "stationID2": "KORH",
+            "stationLbl2": "Worcester",
+            "stationID3": "KOWD",
+            "stationLbl3": "Norwood"
+        }
     }
 }
 ```
