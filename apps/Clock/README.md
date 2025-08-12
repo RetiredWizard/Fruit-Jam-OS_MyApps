@@ -1,6 +1,6 @@
 # Internet Weather Clock
 
-The Internet Clock app files in this folder add the app to the Fruit Jam OS application list, however the *clock.py* program (along with the *pydos* **lib** files and the **fonts** folder) will run on many CircuitPython boards. I have run it on display boards varying from the LILYGO T-Watch-2020, an ESP32 Cheap Yellow Display, Dot Clock displays like the HackTablet, Adafruit TFT FeatherWings and S3 RGB Matrix Portal displays.  
+The Internet Clock app files in this folder add the app to the Fruit Jam OS application list, however the *clock.py* program (along with the *pydos* **lib** files and the **fonts** folder) will run on many CircuitPython boards. I have run it on display boards varying from the [LILYGO T-Watch-2020](https://lilygo.cc/products/t-watch-2020-v3?srsl), an ESP32 [Cheap Yellow Display](https://github.com/witnessmenow/ESP32-Cheap-Yellow-Display), Dot Clock displays like the [7" MaTouch Parallel TFT](https://www.makerfabs.com/esp32-s3-parallel-tft-with-touch-7-inch.html), [Adafruit TFT FeatherWings](https://www.adafruit.com/product/3651) and [S3 RGB Matrix Portal displays](https://www.adafruit.com/product/5778). To run on devices other than the Fruit Jam, you may need to add additional adafruit libraries and/or support files from [PyDOS](https://github.com/RetiredWizard/PyDOS).  
 
 The clock is a digital clock displaying the day of the week, time, current temperature and weather forecast from weather.gov
 
