@@ -7,3 +7,6 @@ Simply copy the desired application from this repository's "apps" folder to the 
     
 Inet Clock    ![Inet Clock](https://github.com/RetiredWizard/Fruit-Jam-OS_MyApps/blob/main/apps/Clock/icon.bmp)  
 
+  
+Picture Frame    ![Picture Frame](https://github.com/RetiredWizard/Fruit-Jam-OS_MyApps/blob/main/apps/Picture_Frame/resources/Picture_Frame.bmp)  
+
