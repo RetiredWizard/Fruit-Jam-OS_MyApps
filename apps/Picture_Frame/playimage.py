@@ -312,4 +312,4 @@ def playimage(passedIn=""):
 if __name__ == "PyDOS":
     playimage(passedIn)
 else:
-    print("Enter 'playimage.playimage('filename')' in the REPL or PEXEC command to run.")
+    print("Enter 'playimage.playimage('file1, file2, ..., seconds')' in the REPL or PEXEC command to run.")

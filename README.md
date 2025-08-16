@@ -10,3 +10,6 @@ Inet Clock    ![Inet Clock](https://github.com/RetiredWizard/Fruit-Jam-OS_MyApps
   
 Picture Frame    ![Picture Frame](https://github.com/RetiredWizard/Fruit-Jam-OS_MyApps/blob/main/apps/Picture_Frame/resources/Picture_Frame.bmp)  
 
+    
+Juke Box    ![Juke Box](https://github.com/RetiredWizard/Fruit-Jam-OS_MyApps/blob/main/apps/Juke_Box/Juke_Box.bmp)  
+
