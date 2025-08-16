@@ -34,16 +34,14 @@ except:
     envVars = {}
     passedIn = ""
 
-if 'display' in dir(runtime):
-    runtime_display = runtime.display
 if '_display' in envVars.keys():
     display = envVars['_display']
 elif Pydos_display:
     display = Pydos_ui.display
+elif 'display' in dir(runtime):
+    display = runtime.display
 elif 'DISPLAY' in dir(board):
     display = board.DISPLAY
-elif runtime_display is not None:
-    display = runtime_display
 else:
     try:
         import matrix
