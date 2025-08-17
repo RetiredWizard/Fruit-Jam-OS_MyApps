@@ -13,3 +13,6 @@ Picture Frame    ![Picture Frame](https://github.com/RetiredWizard/Fruit-Jam-OS_
     
 Juke Box    ![Juke Box](https://github.com/RetiredWizard/Fruit-Jam-OS_MyApps/blob/main/apps/Juke_Box/Juke_Box.bmp)  
 
+  
+[Fruitris](https://github.com/relic-se/Fruit_Jam_Fruitris) (Tetris)   ![Fruitris](https://github.com/RetiredWizard/Fruit-Jam-OS_MyApps/blob/main/apps/Fruitris/icon.bmp)  
+
