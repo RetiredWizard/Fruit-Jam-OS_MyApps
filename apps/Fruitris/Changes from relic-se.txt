@@ -5,9 +5,10 @@ Changes made to simplify installing on Fruit Jam OS and running without controll
   
 1) Added logic to assign DAC output and volume based on optional launcher.conf.json file  
 2) Added logic to skip audio configuration for use on hardware without a LTV320 DAC (not tested yet)  
-3) updated the button_handler to support combination button pushes allowing complete game
+3) Plan to add logic to bypass button configuration on hardware without buttons (not completed yet)
+4) updated the button_handler to support combination button pushes allowing complete game
    play using hardware buttons  
 
-4) Any libraries not currently bundled with Fruit Jam OS that Fruitris required were placed
+5) Any libraries not currently bundled with Fruit Jam OS that Fruitris required were placed
    in the main Fruitris folder to simplify installing on the Fruit Jam.
 
