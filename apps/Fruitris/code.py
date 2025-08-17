@@ -125,7 +125,6 @@ launcher_config = {}
 if pathlib.Path("/launcher.conf.json").exists():
     with open("/launcher.conf.json", "r") as f:
         launcher_config = json.load(f)
-launcher_config = launcher_config.get("fruitris",{})
 
 # Check if TLV320 DAC is connected
 if "I2C" in dir(board):  
@@ -135,14 +134,14 @@ if "I2C" in dir(board):
             break
         time.sleep(0.01)
     if 0x18 in i2c.scan():
-        ltv320_present = True
+        tlv320_present = True
     else:
-        ltv320_present = False
+        tlv320_present = False
     i2c.unlock()
 else:
-    ltv320_present = False
+    tlv320_present = False
 
-if ltv320_present:
+if tlv320_present:
     # configure TLV320 DAC
     dac = TLV320DAC3100(i2c)
     dac.reset()
@@ -150,15 +149,15 @@ if ltv320_present:
     # set sample rate & bit depth
     dac.configure_clocks(sample_rate=32000, bit_depth=16)
 
-    if "ltv320" in launcher_config:
-        if launcher_config["ltv320"].get("output") == "speaker":
+    if "tlv320" in launcher_config:
+        if launcher_config["tlv320"].get("output") == "speaker":
             # use speaker
             dac.speaker_output = True
-            dac.dac_volume = launcher_config["ltv320"].get("volume",5)  # dB
+            dac.dac_volume = launcher_config["tlv320"].get("volume",5)  # dB
         else:
             # use headphones
             dac.headphone_output = True
-            dac.dac_volume = launcher_config["ltv320"].get("volume",0)  # dB
+            dac.dac_volume = launcher_config["tlv320"].get("volume",0)  # dB
     else:
         # default to headphones
         dac.headphone_output = True
