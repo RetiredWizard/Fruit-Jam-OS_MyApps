@@ -4,7 +4,7 @@ The files in this folder will add the Internet Clock app to the Fruit Jam OS app
 
 The clock is a digital clock displaying the day of the week, time, current temperature and weather forecast from weather.gov and weatherunderground.com.
 
-By default the time and weather is provided for the Boston, MA area however the time zone and weather station locations can be customized using a launcher.conf.json file. The application will search the current folder the app is running from first and then check the root folder for the launcher.conf.json file.
+By default the time and weather is provided for the Boston, MA area however the time zone and weather station locations can be customized using a launcher.conf.json file. The application will search the root folder for the launcher.conf.json file.
 
 ## Optional Parameters
   
@@ -37,8 +37,6 @@ By using the mini map on the [weather.gov](https://www.weather.gov) site and cli
   
 ------------------------------
 ## Example launcher.conf.json file  
-
-The "inetclock" dictionary label is optional but allows easier combination with other app launcher.conf.json settings should a single shared file be used from the root folder.
 
 ```json
 {

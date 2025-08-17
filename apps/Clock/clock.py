@@ -142,17 +142,13 @@ screen.append(weather)
 screen.append(temperature)
 screen.append(temperature2)
 
-# optional configuration file for speaker/headphone setting, check current and root directory
+# optional configuration file for speaker/headphone settings
 launcher_config = {}
-if pathlib.Path("launcher.conf.json").exists():
-    with open("launcher.conf.json", "r") as f:
-        launcher_config = json.load(f)
-elif pathlib.Path("/launcher.conf.json").exists():
+if pathlib.Path("/launcher.conf.json").exists():
     with open("/launcher.conf.json", "r") as f:
         launcher_config = json.load(f)
 print(launcher_config)
-if 'inetclock' in launcher_config:
-    launcher_config = launcher_config['inetclock']
+launcher_config = launcher_config.get('inetclock',{})
 
 if 'weatherunderground' in launcher_config:
     WU_stationID = launcher_config['weatherunderground'].get('stationID', 'KMABOSTO365')
