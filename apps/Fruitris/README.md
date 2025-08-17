@@ -1,5 +1,9 @@
 # Fruit_Jam_Fruitris
-Tetris, _**Fruit Jamified!**_
+
+**See "Changes from relic-se.txt" for info on modifications made here**  
+relic-se Original: https://github.com/relic-se/Fruit_Jam_Fruitris  
+
+Tetris, _**Fruit Jamified!**_  
 
 ![screenshot of Fruitris on the Adafruit Fruit Jam](assets/screenshot.png)
 

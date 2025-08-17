@@ -64,7 +64,7 @@ def Playi2s(passedIn=""):
     if pathlib.Path("/launcher.conf.json").exists():
         with open("/launcher.conf.json", "r") as f:
             launcher_config = json.load(f)
-    launcher_config = launcher_config.get("juke_box",{})
+    launcher_config = launcher_config.get("jukebox",{})
 
     # Check if TLV320 DAC is connected
     if "I2C" in dir(board):  
