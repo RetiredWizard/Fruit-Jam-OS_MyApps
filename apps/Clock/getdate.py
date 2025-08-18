@@ -59,8 +59,11 @@ def getdate(passedIn=""):
 
         elif sys.implementation.name.upper() == "CIRCUITPYTHON":
             ntp = None
-            if not hasattr(Pydos_wifi.radio,'get_time'):
+            #if not hasattr(Pydos_wifi.radio,'get_time'):
+            try:
                 ntp = adafruit_ntp.NTP(Pydos_wifi._pool, server='pool.ntp.org', tz_offset=tz_hour_offset)
+            except:
+                pass
 
             success = False
             for i in range(5):
@@ -72,22 +75,27 @@ def getdate(passedIn=""):
                         break
                     except:
                         pass
-                else:
-                    strtTime = time.time()
-                    while time.time() < strtTime+5 and not success:
-                        try:
-                            rtc.RTC().datetime = time.localtime(Pydos_wifi.radio.get_time()[0] + tz_hour_offset*3600)
-                            success = True
-                        except:
-                            time.sleep(.5)
-                    if success:
+                #else:
+                strtTime = time.time()
+                while time.time() < strtTime+5 and not success:
+                    try:
+                        rtc.RTC().datetime = time.localtime(Pydos_wifi.radio.get_time()[0] + tz_hour_offset*3600)
+                        success = True
                         break
+                    except:
+                        time.sleep(.5)
+
     # One more try, this time display the exception if we fail
             if not success:
                 print(".")
                 if ntp:
-                    rtc.RTC().datetime = ntp.datetime
-                else:
+                    try:
+                        rtc.RTC().datetime = ntp.datetime
+                        success = True
+                    except:
+                        pass
+                #else:
+                if not success:
                     rtc.RTC().datetime = time.localtime(Pydos_wifi.radio.get_time()[0] + tz_hour_offset*3600)
 
             print("\nTime and Date successfully set",end="")
