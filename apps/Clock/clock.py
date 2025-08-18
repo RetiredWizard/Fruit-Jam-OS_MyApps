@@ -38,7 +38,7 @@ if '_display' in envVars.keys():
     display = envVars['_display']
 elif Pydos_display:
     display = Pydos_ui.display
-elif 'display' in dir(runtime):
+elif 'display' in dir(runtime) and runtime.display is not None:
     display = runtime.display
 elif 'DISPLAY' in dir(board):
     display = board.DISPLAY
