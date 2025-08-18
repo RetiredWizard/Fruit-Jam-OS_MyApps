@@ -116,7 +116,11 @@ TETROMINOS = [
 ]
 
 # configure hardware
-buttons = Keys((board.BUTTON1, board.BUTTON2, board.BUTTON3), value_when_pressed=False, pull=True)
+if "BUTTON1" in dir(board) and "BUTTON2" in dir(board) and "BUTTON3" in dir(board):
+    buttons = Keys((board.BUTTON1, board.BUTTON2, board.BUTTON3), value_when_pressed=False, pull=True)
+else:
+    buttons = None
+
 if NEOPIXELS:
     from neopixel import NeoPixel
     neopixels = NeoPixel(board.NEOPIXEL, 5)
@@ -386,33 +390,53 @@ if audio is not None:
                 lfo.retrigger()
         synth.release_all_then_press(note)
 
-def play_song() -> None:
-    if audio is None:
-        return
-    set_song_tempo()  # reset tempo
-    mixer.play(song_bass, voice=0, loop=True)
-    mixer.play(song_melody, voice=1, loop=True)
+    def play_song() -> None:
+        set_song_tempo()  # reset tempo
+        mixer.play(song_bass, voice=0, loop=True)
+        mixer.play(song_melody, voice=1, loop=True)
 
-def stop_song() -> None:
-    if audio is None:
-        return
-    mixer.stop_voice(0)
-    mixer.stop_voice(1)
+    def stop_song() -> None:
+        mixer.stop_voice(0)
+        mixer.stop_voice(1)
 
-def get_song_tempo(ppqn:int=240) -> int:
-    if audio is None:
+    def get_song_tempo(ppqn:int=240) -> int:
+        if hasattr(song_bass, "tempo"):
+            return song_bass.tempo*60//ppqn
+        else:
+            return 168
+
+    def set_song_tempo(tempo:int=168, ppqn:int=240) -> None:
+        if hasattr(song_bass, "tempo"):
+            for track in (song_bass, song_melody):
+                track.tempo = ppqn*tempo//60
+
+else:
+    # dummy midi track class if no audio
+    song_bass = None
+    song_melody = None
+
+    # dummy sfx notes
+    SFX_DROP = None
+    SFX_HARD_DROP = None
+    SFX_MOVE = None
+    SFX_ROTATE = None
+    SFX_ERROR = None
+    SFX_PLACE = None
+    SFX_CLEAR = None
+    SFX_TETRIS = None
+    SFX_GAME_OVER = None
+
+    # dummy audio functions if no audio output
+    def play_sfx(note) -> None:
+        pass
+    def play_song() -> None:
+        pass
+    def stop_song() -> None:
+        pass
+    def get_song_tempo(ppqn:int=240) -> int:
         return 168
-    if hasattr(song_bass, "tempo"):
-        return song_bass.tempo*60//ppqn
-    else:
-        return 168
-
-def set_song_tempo(tempo:int=168, ppqn:int=240) -> None:
-    if audio is None:
-        return
-    if hasattr(song_bass, "tempo"):
-        for track in (song_bass, song_melody):
-            track.tempo = ppqn*tempo//60
+    def set_song_tempo(tempo:int=168, ppqn:int=240) -> None:
+        pass
 
 # load tiles
 def copy_palette(palette:Palette) -> Palette:
@@ -1225,15 +1249,16 @@ async def button_handler() -> None:
 
     while True:
 
-        # check hardware buttons
-        if (event := buttons.events.get()) and event.released:
-            if button_pressed == 7:  # ignore all buttons pressed
-                button_pressed = 0
-            elif button_pressed > 0:
-                do_action(button_map[button_pressed])
-                button_pressed = 0
-        elif event and event.pressed:
-            button_pressed += (1 << event.key_number)
+        if buttons is not None:
+            # check hardware buttons
+            if (event := buttons.events.get()) and event.released:
+                if button_pressed == 7:  # ignore all buttons pressed
+                    button_pressed = 0
+                elif button_pressed > 0:
+                    do_action(button_map[button_pressed])
+                    button_pressed = 0
+            elif event and event.pressed:
+                button_pressed += (1 << event.key_number)
 
         await asyncio.sleep(1/30)
 

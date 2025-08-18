@@ -4,8 +4,8 @@ This is a slightly modified version of Fruit_Jam_Fruitris by relic-se
 Changes made to simplify installing on Fruit Jam OS and running without controller hardware  
   
 1) Added logic to assign DAC output and volume based on optional launcher.conf.json file  
-2) Added logic to skip audio configuration for use on hardware without a LTV320 DAC (not tested yet)  
-3) Plan to add logic to bypass button configuration on hardware without buttons (not completed yet)
+2) Added logic to skip audio configuration for use on hardware without a LTV320 DAC  
+3) Added logic to bypass button configuration on hardware without buttons
 4) updated the button_handler to support combination button pushes allowing complete game
    play using hardware buttons  
 5) Added a keyboard_handler to support the documented keyboard controls in the game
