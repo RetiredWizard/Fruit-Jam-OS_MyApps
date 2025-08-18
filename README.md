@@ -17,5 +17,5 @@ Jukebox    ![Jukebox](https://github.com/RetiredWizard/Fruit-Jam-OS_MyApps/blob/
 [Fruitris](https://github.com/relic-se/Fruit_Jam_Fruitris) (Tetris)   ![Fruitris](https://github.com/RetiredWizard/Fruit-Jam-OS_MyApps/blob/main/apps/Fruitris/icon.bmp)  
 
     
-No Step on Snek    ![no_step_on_snek](https://github.com/RetiredWizard/Fruit-Jam-OS_MyApps/blob/main/apps/No_step_on_snek/icon2.bmp)  
+[No Step on Snek](https://hackaday.io/project/168815-no-step-on-snek)    ![no_step_on_snek](https://github.com/RetiredWizard/Fruit-Jam-OS_MyApps/blob/main/apps/No_step_on_snek/icon2.bmp)  
 
