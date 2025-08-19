@@ -135,13 +135,10 @@ def getdate(passedIn=""):
 # This is the main entry point for the getdate.py script.
 
 
-# optional configuration file for speaker/headphone setting, check current and root directory
+# optional configuration file for speaker/headphone setting
 if __name__ != "PyDOS":
     launcher_config = {}
-    if "launcher.conf.json" in os.listdir():
-        with open("launcher.conf.json", "r") as f:
-            launcher_config = json.load(f)
-    elif "launcher.conf.json" in os.listdir("/"):
+    if "launcher.conf.json" in os.listdir("/"):
         with open("/launcher.conf.json", "r") as f:
             launcher_config = json.load(f)
     if 'inetclock' in launcher_config:
