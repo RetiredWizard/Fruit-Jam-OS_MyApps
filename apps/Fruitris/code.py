@@ -1,29 +1,25 @@
 # SPDX-FileCopyrightText: 2025 Cooper Dalrymple (@relic-se)
+# SPDX-FileCopyrightText: 2025 RetiredWizard
 #
 # SPDX-License-Identifier: GPLv3
 from array import array
-import json
+import sys
 import asyncio
-from audiobusio import I2SOut
-from audiomixer import Mixer
 import board
 from displayio import Group, TileGrid, OnDiskBitmap, Palette
-from keypad import Keys
+import json
 from micropython import const
 import os
-import sys
 from random import randint
 import supervisor
-import synthio
 import terminalio
 import time
+import vectorio
 
 from adafruit_display_text.label import Label
 from adafruit_fruitjam.peripherals import request_display_config
 import adafruit_imageload
 import adafruit_pathlib as pathlib
-from adafruit_tlv320 import TLV320DAC3100
-import relic_waveform
 
 import gamepad
 from usb.core import USBError
@@ -115,69 +111,86 @@ TETROMINOS = [
     }
 ]
 
-# configure hardware
-if "BUTTON1" in dir(board) and "BUTTON2" in dir(board) and "BUTTON3" in dir(board):
-    buttons = Keys((board.BUTTON1, board.BUTTON2, board.BUTTON3), value_when_pressed=False, pull=True)
-else:
-    buttons = None
+# initialize groups to hold visual elements
+root_group = Group()
+display.root_group = root_group
 
-if NEOPIXELS:
-    from neopixel import NeoPixel
-    neopixels = NeoPixel(board.NEOPIXEL, 5)
+loading_group = Group()
+root_group.append(loading_group)
 
-# optional configuration file for speaker/headphone setting
+main_group = Group(scale=SCALE)
+main_group.hidden = True
+root_group.append(main_group)
+
+text_group = Group()
+text_group.hidden = True
+root_group.append(text_group)
+
+# loading text
+loading_text = Label(terminalio.FONT, text="Loading Fruitris...", color=0xffffff)
+loading_text.anchor_point = (.5, .5)
+loading_text.anchored_position = (display.width//2, display.height//2)
+loading_group.append(loading_text)
+
+# loading bar
+loading_bar_palette = Palette(1)
+loading_bar_palette[0] = 0xffffff
+loading_bar = vectorio.Rectangle(
+    pixel_shader=loading_bar_palette,
+    width=1, height=24//(3-SCALE),
+)
+loading_bar.y = display.height - loading_bar.height
+loading_group.append(loading_bar)
+
+LOADING_STEPS = 33
+loading_step = 0
+def increment_loading_bar(steps:int=1) -> None:
+    global loading_step
+    loading_step += steps
+    loading_bar.width = int(display.width * (loading_step / LOADING_STEPS))
+    display.refresh()
+
+increment_loading_bar()  # display loading screen
+
+# read config
 launcher_config = {}
 if pathlib.Path("/launcher.conf.json").exists():
     with open("/launcher.conf.json", "r") as f:
         launcher_config = json.load(f)
 
-# Check if TLV320 DAC is connected
-if "I2C" in dir(board):  
-    i2c = board.I2C()
-    for i in range(500): # try for 5 seconds
-        if i2c.try_lock():
-            break
-        time.sleep(0.01)
-    if 0x18 in i2c.scan():
-        tlv320_present = True
-    else:
-        tlv320_present = False
-    i2c.unlock()
-else:
-    tlv320_present = False
+increment_loading_bar()
+
+# Check if DAC is connected
+i2c = board.I2C()
+while not i2c.try_lock():
+    time.sleep(0.01)
+tlv320_present = 0x18 in i2c.scan()
+i2c.unlock()
 
 if tlv320_present:
-    # configure TLV320 DAC
-    dac = TLV320DAC3100(i2c)
-    dac.reset()
+    from audiobusio import I2SOut
+    from audiomixer import Mixer
+    import synthio
+
+    import adafruit_tlv320
+    import relic_waveform
+
+    dac = adafruit_tlv320.TLV320DAC3100(i2c)
 
     # set sample rate & bit depth
     dac.configure_clocks(sample_rate=32000, bit_depth=16)
 
-    if "tlv320" in launcher_config:
-        if launcher_config["tlv320"].get("output") == "speaker":
-            # use speaker
-            dac.speaker_output = True
-            dac.dac_volume = launcher_config["tlv320"].get("volume",5)  # dB
-        else:
-            # use headphones
-            dac.headphone_output = True
-            dac.dac_volume = launcher_config["tlv320"].get("volume",0)  # dB
+    if "tlv320" in launcher_config and launcher_config["tlv320"].get("output") == "speaker":
+        # use speaker
+        dac.speaker_output = True
+        dac.dac_volume = launcher_config["tlv320"].get("volume", 5)  # dB
     else:
-        # default to headphones
+        # use headphones
         dac.headphone_output = True
-        dac.dac_volume = 0  # dB
+        dac.dac_volume = launcher_config["tlv320"].get("volume", 0) if "tlv320" in launcher_config else 0  # dB
 
-# setup audio output
-audio = None
-if 'I2S_BIT_CLOCK' in dir(board):
-    audio = I2SOut(board.I2S_BIT_CLOCK, board.I2S_WORD_SELECT, board.I2S_DATA)
-if 'I2S_BCLK' in dir(board):
+    # setup audio output
     audio = I2SOut(board.I2S_BCLK, board.I2S_WS, board.I2S_DIN)
-elif 'SPEAKER_SCK' in dir(board):
-    audio = I2SOut(board.SPEAKER_SCK, board.SPEAKER_WS, board.SPEAKER_DOUT)
-
-if audio is not None:
     mixer = Mixer(
         voice_count=3,
         sample_rate=dac.sample_rate,
@@ -195,6 +208,8 @@ if audio is not None:
         channel_count=mixer.channel_count,
     )
     mixer.voice[2].play(synth)
+
+    increment_loading_bar()
 
     # load midi tracks
     def read_midi_track(path:str, waveform=None, envelope:synthio.Envelope=None, ppqn:int=240, tempo:int=168) -> synthio.MidiTrack:
@@ -225,6 +240,8 @@ if audio is not None:
         ),
     )
 
+    increment_loading_bar()
+
     song_melody = read_midi_track(
         "samples/melody.mid",
         waveform = relic_waveform.mix(
@@ -239,6 +256,8 @@ if audio is not None:
         ),
     )
 
+    increment_loading_bar()
+
     # sfx notes
     SFX_DROP = synthio.Note(
         frequency=synthio.midi_to_hz(78),
@@ -246,6 +265,8 @@ if audio is not None:
         envelope=synthio.Envelope(attack_time=0, decay_time=.1, sustain_level=0),
         amplitude=.2,
     )
+
+    increment_loading_bar()
 
     SFX_HARD_DROP = synthio.Note(
         frequency=synthio.midi_to_hz(50),
@@ -258,6 +279,8 @@ if audio is not None:
         ),
     )
 
+    increment_loading_bar()
+
     SFX_MOVE = synthio.Note(
         frequency=synthio.midi_to_hz(65),
         waveform=relic_waveform.noise(),
@@ -269,6 +292,8 @@ if audio is not None:
         ),
         filter=synthio.Biquad(synthio.FilterMode.LOW_PASS, 5000),
     )
+
+    increment_loading_bar()
 
     SFX_ROTATE = synthio.Note(
         frequency=synthio.midi_to_hz(55),
@@ -288,6 +313,8 @@ if audio is not None:
         ),
     )
 
+    increment_loading_bar()
+
     SFX_ERROR = synthio.Note(
         frequency=synthio.midi_to_hz(31),
         waveform=relic_waveform.mix(
@@ -298,6 +325,8 @@ if audio is not None:
         amplitude=.3,
         filter=synthio.Biquad(synthio.FilterMode.LOW_PASS, 8000),
     )
+
+    increment_loading_bar()
 
     SFX_PLACE = synthio.Note(
         frequency=synthio.midi_to_hz(43),
@@ -320,6 +349,8 @@ if audio is not None:
         ),
     )
 
+    increment_loading_bar()
+
     def bend_melody(*notes:int) -> array:
         return array('h', [x * 32767 // 24 for x in notes])
 
@@ -341,6 +372,8 @@ if audio is not None:
         filter=synthio.Biquad(synthio.FilterMode.LOW_PASS, synthio.LFO(scale=400, offset=1600, rate=5), Q=1.2),
     )
 
+    increment_loading_bar()
+
     SFX_TETRIS = synthio.Note(
         frequency=synthio.midi_to_hz(62),
         waveform=relic_waveform.mix(
@@ -358,6 +391,8 @@ if audio is not None:
         ),
         filter=synthio.Biquad(synthio.FilterMode.LOW_PASS, synthio.LFO(scale=400, offset=1600, rate=5), Q=1.2),
     )
+
+    increment_loading_bar()
 
     SFX_GAME_OVER = synthio.Note(
         frequency=synthio.midi_to_hz(50),
@@ -384,38 +419,9 @@ if audio is not None:
         ),
     )
 
-    def play_sfx(note:synthio.Note) -> None:
-        for lfo in (note.bend, note.amplitude, (note.filter.frequency if type(note.filter) is synthio.Biquad else None)):
-            if type(lfo) is synthio.LFO:
-                lfo.retrigger()
-        synth.release_all_then_press(note)
-
-    def play_song() -> None:
-        set_song_tempo()  # reset tempo
-        mixer.play(song_bass, voice=0, loop=True)
-        mixer.play(song_melody, voice=1, loop=True)
-
-    def stop_song() -> None:
-        mixer.stop_voice(0)
-        mixer.stop_voice(1)
-
-    def get_song_tempo(ppqn:int=240) -> int:
-        if hasattr(song_bass, "tempo"):
-            return song_bass.tempo*60//ppqn
-        else:
-            return 168
-
-    def set_song_tempo(tempo:int=168, ppqn:int=240) -> None:
-        if hasattr(song_bass, "tempo"):
-            for track in (song_bass, song_melody):
-                track.tempo = ppqn*tempo//60
+    increment_loading_bar()
 
 else:
-    # dummy midi track class if no audio
-    song_bass = None
-    song_melody = None
-
-    # dummy sfx notes
     SFX_DROP = None
     SFX_HARD_DROP = None
     SFX_MOVE = None
@@ -426,17 +432,48 @@ else:
     SFX_TETRIS = None
     SFX_GAME_OVER = None
 
-    # dummy audio functions if no audio output
-    def play_sfx(note) -> None:
-        pass
-    def play_song() -> None:
-        pass
-    def stop_song() -> None:
-        pass
-    def get_song_tempo(ppqn:int=240) -> int:
+    increment_loading_bar(12)
+
+def play_song(reset:bool=True) -> None:
+    if tlv320_present:
+        if reset:
+            set_song_tempo()  # reset tempo
+        mixer.play(song_bass, voice=0, loop=True)
+        mixer.play(song_melody, voice=1, loop=True)
+
+def stop_song() -> None:
+    if tlv320_present:
+        mixer.stop_voice(0)
+        mixer.stop_voice(1)
+
+def get_song_tempo(ppqn:int=240) -> int:
+    if tlv320_present and hasattr(song_bass, "tempo"):
+        return song_bass.tempo*60//ppqn
+    else:
         return 168
-    def set_song_tempo(tempo:int=168, ppqn:int=240) -> None:
-        pass
+
+def set_song_tempo(tempo:int=168, ppqn:int=240) -> None:
+    if tlv320_present and hasattr(song_bass, "tempo"):
+        for track in (song_bass, song_melody):
+            track.tempo = ppqn*tempo//60
+
+def play_sfx(note:synthio.Note) -> None:
+    if tlv320_present:
+        for lfo in (note.bend, note.amplitude, (note.filter.frequency if type(note.filter) is synthio.Biquad else None)):
+            if type(lfo) is synthio.LFO:
+                lfo.retrigger()
+        synth.release_all_then_press(note)
+
+# configure hardware
+if "BUTTON1" in dir(board) and "BUTTON2" in dir(board) and "BUTTON3" in dir(board):
+    from keypad import Keys
+    buttons = Keys((board.BUTTON1, board.BUTTON2, board.BUTTON3), value_when_pressed=False, pull=True)
+else:
+    buttons = None
+
+if NEOPIXELS and "NEOPIXEL" in dir(board):
+    from neopixel import NeoPixel
+    neopixels = NeoPixel(board.NEOPIXEL, 5)
 
 # load tiles
 def copy_palette(palette:Palette) -> Palette:
@@ -463,13 +500,26 @@ bg_tiles, bg_palette = adafruit_imageload.load("bitmaps/bg.bmp")
 bg_palette[0] = 0x030060
 bg_palette[1] = 0x442a92
 
+increment_loading_bar()
+
+# load pause tiles
+pause_tiles, pause_palette = adafruit_imageload.load("bitmaps/pause.bmp")
+pause_palette.make_transparent(1)
+PAUSE_TILE_SIZE = min(pause_tiles.width, pause_tiles.height)
+
+increment_loading_bar()
+
 # load window border tiles
 window_tiles, window_palette = adafruit_imageload.load("bitmaps/window.bmp")
 window_palette.make_transparent(2)
 
+increment_loading_bar()
+
 # load tetromino tiles
 tiles, tiles_palette = adafruit_imageload.load("bitmaps/tetromino.bmp")
 tiles_palette.make_transparent(28)
+
+increment_loading_bar()
 
 # create separate palette to only show tile borders
 tiles_border_palette = copy_palette(tiles_palette)
@@ -478,9 +528,13 @@ for i in range(len(tiles_border_palette)):
     if i not in tiles_border_indexes:
         tiles_border_palette.make_transparent(i)
 
+increment_loading_bar()
+
 # load face tiles
 face_bmp, face_palette = adafruit_imageload.load("bitmaps/face.bmp")
 face_palette.make_transparent(2)
+
+increment_loading_bar()
 
 # load drink bitmap
 drink_bmp = OnDiskBitmap("bitmaps/drink{:s}.bmp".format("-sm" if display.width / display.height > 1.5 else ""))
@@ -489,11 +543,15 @@ drink_map = tuple([(x, drink_bmp.pixel_shader[x]) for x in drink_map])  # copy c
 for i, color in drink_map:
     drink_bmp.pixel_shader[i] = 0x000000
 
+increment_loading_bar()
+
 # starting neopixels
 if NEOPIXELS:
     for i in range(neopixels.n):
         neopixels[i] = drink_map[neopixels.n - 1 - i][1]
     neopixels.show()
+
+increment_loading_bar()
 
 class TileGroup(Group):
 
@@ -659,6 +717,8 @@ class ScoreWindow(NumberWindow):
         except OSError:
             pass
 
+increment_loading_bar()
+
 def get_random_tetromino_index() -> int:
     return randint(0, len(TETROMINOS) - 1)
 
@@ -816,11 +876,7 @@ class Tetromino(TileGroup):
     def down(self) -> bool:
         return self.move(y=1)
 
-# initialize groups to hold visual elements
-text_group = Group()
-main_group = Group(scale=SCALE)
-text_group.append(main_group)
-display.root_group = text_group
+increment_loading_bar()
 
 # use terminalio font as tile sheet to write to background
 bg_grid = TileGrid(
@@ -836,6 +892,8 @@ for y in range(SCREEN_HEIGHT):
 
 # add background to display
 main_group.append(bg_grid)
+
+increment_loading_bar()
 
 # setup grid container
 grid_window = Window(
@@ -855,6 +913,8 @@ tilegrid = TileGrid(
 grid_container.append(tilegrid)
 grid_window.append(grid_container)
 
+increment_loading_bar()
+
 # display title image
 title_bmp = OnDiskBitmap("bitmaps/title.bmp")
 title_bmp.pixel_shader.make_transparent(8)
@@ -865,6 +925,8 @@ title_tg = TileGrid(
 )
 main_group.append(title_tg)
 
+increment_loading_bar()
+
 # waiting text
 waiting_text = Label(terminalio.FONT, text="Press any key\n to start...", color=0xffffff)
 waiting_text.anchor_point = (.5, .5)
@@ -873,6 +935,8 @@ waiting_text.anchored_position = (
     (grid_window.y + grid_window.height // 2) * SCALE
 )
 text_group.append(waiting_text)
+
+increment_loading_bar()
 
 # next tetromino container
 tetromino_window = Window(
@@ -889,6 +953,8 @@ next_tetromino.tile_y = 1
 next_tetromino.rotate_left(True)
 tetromino_window.append(next_tetromino)
 
+increment_loading_bar()
+
 # high score container
 score_window = ScoreWindow(
     high_score=10000,
@@ -896,6 +962,8 @@ score_window = ScoreWindow(
     y=grid_window.tile_y + tetromino_window.tile_height + WINDOW_GAP,
 )
 main_group.append(score_window)
+
+increment_loading_bar()
 
 # face
 face_window = Window(
@@ -914,6 +982,8 @@ face_tg = TileGrid(
 face_tg.x = (face_window.width - face_tg.tile_width) // 2
 face_tg.y = (face_window.height - face_tg.tile_height) // 2
 face_window.append(face_tg)
+
+increment_loading_bar()
 
 # level drink
 level_window_y = tetromino_window.tile_y + (title_bmp.height // TILE_SIZE) + WINDOW_GAP
@@ -952,6 +1022,33 @@ def set_drink_level(value:float) -> None:
             neopixels[i] = apply_brightness(current_color, (value * neopixels.n) - (neopixels.n - 1 - i))
         neopixels.show()
 
+increment_loading_bar()
+
+# setup pause screen
+pause_group = Group()
+pause_group.hidden = True
+root_group.append(pause_group)
+
+pause_tg = TileGrid(
+    pause_tiles, pixel_shader=pause_palette,
+    width=display.width//PAUSE_TILE_SIZE, height=display.height//PAUSE_TILE_SIZE,
+    tile_width=PAUSE_TILE_SIZE, tile_height=PAUSE_TILE_SIZE,
+    default_tile=0,
+)
+pause_group.append(pause_tg)
+
+# clear out area for text
+for y in range(pause_tg.height//2-2, pause_tg.height//2+2):
+    for x in range(pause_tg.width//2-4, pause_tg.width//2+4):
+        pause_tg[x, y] = 1
+
+pause_label = Label(terminalio.FONT, text="PAUSED", color=0xffffff)
+pause_label.anchor_point = (.5, .5)
+pause_label.anchored_position = (display.width//2, display.height//2)
+pause_group.append(pause_label)
+
+increment_loading_bar()
+
 tetromino, tetromino_indicator = None, None
 def update_tetromino_indicator_y() -> None:
     tetromino_indicator.tile_y = 0
@@ -983,9 +1080,10 @@ def get_next_tetromino() -> None:
 
     next_tetromino.tetromino_index = get_random_tetromino_index()
 
-STATE_WAITING = const(1)
-STATE_PLAYING = const(2)
-STATE_GAME_OVER = const(3)
+STATE_WAITING   = const(1)
+STATE_PLAYING   = const(2)
+STATE_PAUSED    = const(3)
+STATE_GAME_OVER = const(4)
 
 game_state = STATE_WAITING
 def reset_game() -> None:
@@ -1149,64 +1247,75 @@ ACTION_LEFT      = const(1)
 ACTION_RIGHT     = const(2)
 ACTION_SOFT_DROP = const(3)
 ACTION_HARD_DROP = const(4)
-ACTION_QUIT      = const(5)
+ACTION_PAUSE     = const(5)
+ACTION_QUIT      = const(6)
 
 gamepad_map = (
-    (gamepad.A,     ACTION_ROTATE),
-    (gamepad.B,     ACTION_HARD_DROP),
-    (gamepad.DOWN,  ACTION_SOFT_DROP),
-    (gamepad.START, ACTION_QUIT),
-    (gamepad.LEFT,  ACTION_LEFT),
-    (gamepad.RIGHT, ACTION_RIGHT),
-    (gamepad.UP,    ACTION_ROTATE),
+    (gamepad.A,      ACTION_ROTATE),
+    (gamepad.B,      ACTION_HARD_DROP),
+    (gamepad.DOWN,   ACTION_SOFT_DROP),
+    (gamepad.START,  ACTION_PAUSE),
+    (gamepad.SELECT, ACTION_QUIT),
+    (gamepad.LEFT,   ACTION_LEFT),
+    (gamepad.RIGHT,  ACTION_RIGHT),
+    (gamepad.UP,     ACTION_ROTATE),
 )
 gamepad_device = None
 
 def do_action(action:int) -> None:
     global tetromino, last_drop_time, game_state, gamepad_device
-    if game_state == STATE_PLAYING:
-        if action == ACTION_ROTATE:
-            if tetromino.rotate_right():
-                tetromino_indicator.rotate_right(True)
-                tetromino_indicator.tile_x = tetromino.tile_x
-                update_tetromino_indicator_y()
-                play_sfx(SFX_ROTATE)
-            else:
-                play_sfx(SFX_ERROR)
-        elif action == ACTION_LEFT:
-            if tetromino.left():
-                tetromino_indicator.tile_x = tetromino.tile_x
-                update_tetromino_indicator_y()
-                play_sfx(SFX_MOVE)
-            else:
-                play_sfx(SFX_ERROR)
-        elif action == ACTION_RIGHT:
-            if tetromino.right():
-                tetromino_indicator.tile_x = tetromino.tile_x
-                update_tetromino_indicator_y()
-                play_sfx(SFX_MOVE)
-            else:
-                play_sfx(SFX_ERROR)
-        elif action == ACTION_SOFT_DROP:
-            if tetromino.down():
-                play_sfx(SFX_DROP)
-                last_drop_time = time.monotonic()
-        elif action == ACTION_HARD_DROP:
-            spaces = 0
-            while tetromino.down():
-                spaces += 1
-            score_window.score += spaces
-            if spaces:
-                play_sfx(SFX_HARD_DROP)
-                last_drop_time = time.monotonic()
-    elif game_state == STATE_WAITING and action != ACTION_QUIT:
-        reset_game()
-    if action == ACTION_QUIT:
-        if gamepad_device is not None and not gamepad_device.device.is_kernel_driver_active(gamepad_device.interface):
-            gamepad_device.device.attach_kernel_driver(gamepad_device.interface)
-        supervisor.reload()
-    
-    display.refresh()
+    if action is not None:
+        if game_state == STATE_PLAYING:
+            if action == ACTION_ROTATE:
+                if tetromino.rotate_right():
+                    tetromino_indicator.rotate_right(True)
+                    tetromino_indicator.tile_x = tetromino.tile_x
+                    update_tetromino_indicator_y()
+                    play_sfx(SFX_ROTATE)
+                else:
+                    play_sfx(SFX_ERROR)
+            elif action == ACTION_LEFT:
+                if tetromino.left():
+                    tetromino_indicator.tile_x = tetromino.tile_x
+                    update_tetromino_indicator_y()
+                    play_sfx(SFX_MOVE)
+                else:
+                    play_sfx(SFX_ERROR)
+            elif action == ACTION_RIGHT:
+                if tetromino.right():
+                    tetromino_indicator.tile_x = tetromino.tile_x
+                    update_tetromino_indicator_y()
+                    play_sfx(SFX_MOVE)
+                else:
+                    play_sfx(SFX_ERROR)
+            elif action == ACTION_SOFT_DROP:
+                if tetromino.down():
+                    play_sfx(SFX_DROP)
+                    last_drop_time = time.monotonic()
+            elif action == ACTION_HARD_DROP:
+                spaces = 0
+                while tetromino.down():
+                    spaces += 1
+                score_window.score += spaces
+                if spaces:
+                    play_sfx(SFX_HARD_DROP)
+                    last_drop_time = time.monotonic()
+            elif action == ACTION_PAUSE:
+                game_state = STATE_PAUSED
+                pause_group.hidden = False
+                stop_song()
+        elif game_state == STATE_PAUSED and action == ACTION_PAUSE:
+            game_state = STATE_PLAYING
+            pause_group.hidden = True
+            play_song(False)
+        elif game_state == STATE_WAITING and action != ACTION_QUIT:
+            reset_game()
+        elif action == ACTION_QUIT:
+            if gamepad_device is not None and not gamepad_device.device.is_kernel_driver_active(gamepad_device.interface):
+                gamepad_device.device.attach_kernel_driver(gamepad_device.interface)
+            supervisor.reload()
+        
+        display.refresh()
 
 async def gamepad_handler() -> None:
     global gamepad_device, gamepad_map
@@ -1231,36 +1340,35 @@ async def gamepad_handler() -> None:
         except (USBError, ValueError) as e:
             await asyncio.sleep(.4)
 
-button_map = (
-    None,
-    ACTION_LEFT,       # button #1
-    ACTION_ROTATE,     # button #2
-    ACTION_HARD_DROP,  # button #1 + button #2 
-    ACTION_RIGHT,      # button #3
-    ACTION_QUIT,       # button #1 + button #3
-    ACTION_SOFT_DROP,  # button #2 + button #3 
-    None,              # button #1 + button #2 + button #3
-)
+if buttons is not None:
+    
+    BUTTON_MAP = (
+        None,
+        ACTION_LEFT,       # button #1
+        ACTION_ROTATE,     # button #2
+        ACTION_PAUSE,      # button #1 & #2
+        ACTION_RIGHT,      # button #3
+        ACTION_HARD_DROP,  # button #1 & #3
+        ACTION_SOFT_DROP,  # button #2 & #3
+        ACTION_QUIT,       # button #1 & #2 & #3
+    )
 
-async def button_handler() -> None:
-    global tetromino, buttons
+    async def button_handler() -> None:
+        global tetromino, buttons
 
-    button_pressed = 0
+        button_pressed = 0
 
-    while True:
+        while True:
 
-        if buttons is not None:
             # check hardware buttons
-            if (event := buttons.events.get()) and event.released:
-                if button_pressed == 7:  # ignore all buttons pressed
-                    button_pressed = 0
-                elif button_pressed > 0:
-                    do_action(button_map[button_pressed])
-                    button_pressed = 0
-            elif event and event.pressed:
-                button_pressed += (1 << event.key_number)
+            if (event := buttons.events.get()):
+                if event.pressed:
+                    button_pressed += 1 << event.key_number
+                elif event.released and button_pressed:
+                    do_action(BUTTON_MAP[button_pressed])  # None will be ignored
+                    button_pressed = 0  # reset
 
-        await asyncio.sleep(1/30)
+            await asyncio.sleep(1/30)
 
 key_map = (
     ACTION_ROTATE,     # Up Arrow
@@ -1269,6 +1377,7 @@ key_map = (
     ACTION_LEFT,       # Left Arrow
     ACTION_ROTATE,     # X
     ACTION_HARD_DROP,  # Z
+    ACTION_PAUSE,      # P
     ACTION_QUIT,       # R / Enter
 )
 
@@ -1284,34 +1393,51 @@ async def keyboard_handler() -> None:
         if supervisor.runtime.serial_bytes_available:
             key_pressed = sys.stdin.read(1)
             if ord(key_pressed) == 27: # Arrow keys start with escape
-                key_pressed = sys.stdin.read(1)
-                if key_pressed == "[":
+                if supervisor.runtime.serial_bytes_available:
                     key_pressed = sys.stdin.read(1)
-                    if key_pressed not in ("A", "B", "C", "D"):
+                    if key_pressed == "[":
+                        key_pressed = sys.stdin.read(1)
+                        if key_pressed not in ("A", "B", "C", "D"):
+                            key_pressed = None
+                    else:
                         key_pressed = None
                 else:
-                    key_pressed = None
+                    # Escape by itself
+                    key_pressed = "R" # Enter key
             elif ord(key_pressed) not in (120, 88, 122, 90, 10):
                 key_pressed = None
             else: # (X or Z), convert to uppercase for consistency
                 if ord(key_pressed) == 10:
-                    key_pressed = "R" # Enter key
+                    key_pressed = "P" # Enter key
                 else:
                     key_pressed = key_pressed.upper()
 
             if key_pressed is not None:
-                do_action(key_map["ABCDXZR".index(key_pressed)])
+                do_action(key_map["ABCDXZPR".index(key_pressed)])
 
 
         await asyncio.sleep(1/30)
 
+
 async def main():
-    await asyncio.gather(
+    tasks = [
         asyncio.create_task(tetromino_handler()),
         asyncio.create_task(gamepad_handler()),
-        asyncio.create_task(button_handler()),
         asyncio.create_task(keyboard_handler()),
-    )
+    ]
+    if buttons is not None:
+        tasks.append(asyncio.create_task(button_handler()))
+    await asyncio.gather(*tasks)
+
+# remove loading screen
+loading_group.remove(loading_text)
+loading_group.remove(loading_bar)
+root_group.remove(loading_group)
+del loading_text, loading_bar, loading_group
+
+# display game components
+main_group.hidden = False
+text_group.hidden = False
 
 # initial display refresh
 display.refresh()
