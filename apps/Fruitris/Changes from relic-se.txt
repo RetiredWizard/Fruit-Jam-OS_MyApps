@@ -1,10 +1,8 @@
 This is a slightly modified version of Fruit_Jam_Fruitris by relic-se  
 (https://github.com/relic-se/Fruit_Jam_Fruitris).  
 
-Changes made to simplify installing on Fruit Jam OS and running without controller hardware  
+Changes made to simplify installing on Fruit Jam OS  
   
-1) Added a keyboard_handler to support the documented keyboard controls in the game
-
-2) Any libraries not currently bundled with Fruit Jam OS that Fruitris required were placed
+1) Any libraries not currently bundled with Fruit Jam OS that Fruitris required were placed
    in the main Fruitris folder to simplify installing on the Fruit Jam.
 
