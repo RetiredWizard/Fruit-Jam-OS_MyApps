@@ -52,6 +52,7 @@ import digitalio
 import storage
 import audiocore
 import audiobusio
+from audiomp3 import MP3Decoder
 import adafruit_tlv320
 import adafruit_ticks
 import os
@@ -190,7 +191,7 @@ def Playi2s(passedIn=""):
         print(f"Playing: {fname}")
 
         if fname[0] == '*':
-            wildlist = [f for f in os.listdir('/sd') if f[-4:].upper() == ".WAV"]
+            wildlist = [f for f in os.listdir('/sd') if f[-4:].upper() in [".WAV",".MP3"]]
             print(f"Found {wildlist} on the SD card.")
             if len(wildlist) == 0:
                 if singlewav:
@@ -209,14 +210,17 @@ def Playi2s(passedIn=""):
             fileindx = (fileindx + 1) % len(files)
 
         print(f"Really Playing: {fname}")
-        if fname[-4:].upper() == ".WAV":
+        if fname[-4:].upper() in [".WAV",".MP3"]:
             f = open('/sd/'+fname, "rb")
-            wav = audiocore.WaveFile(f)
+            if fname[-4:].upper() == ".WAV":
+                track = audiocore.WaveFile(f)
+            else:
+                track = MP3Decoder(f)
 
             if audio_bus is not None:
                 print("Press S to skip, Q to quit")
                 try:
-                    audio_bus.play(wav)
+                    audio_bus.play(track)
                     while audio_bus.playing:
                         if sba():
                             cmnd = readkbd(1)
