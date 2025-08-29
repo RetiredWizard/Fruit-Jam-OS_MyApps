@@ -180,14 +180,14 @@ if tlv320_present:
     # set sample rate & bit depth
     dac.configure_clocks(sample_rate=32000, bit_depth=16)
 
-    if "tlv320" in launcher_config and launcher_config["tlv320"].get("output") == "speaker":
+    if "audio" in launcher_config and launcher_config["audio"].get("output") == "speaker":
         # use speaker
         dac.speaker_output = True
-        dac.dac_volume = launcher_config["tlv320"].get("volume", 5)  # dB
+        dac.dac_volume = launcher_config["audio"].get("volume", 5)  # dB
     else:
         # use headphones
         dac.headphone_output = True
-        dac.dac_volume = launcher_config["tlv320"].get("volume", 0) if "tlv320" in launcher_config else 0  # dB
+        dac.dac_volume = launcher_config["audio"].get("volume", 0) if "audio" in launcher_config else 0  # dB
 
     # setup audio output
     audio = I2SOut(board.I2S_BCLK, board.I2S_WS, board.I2S_DIN)
