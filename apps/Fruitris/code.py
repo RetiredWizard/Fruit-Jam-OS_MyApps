@@ -2,6 +2,14 @@
 # SPDX-FileCopyrightText: 2025 RetiredWizard
 #
 # SPDX-License-Identifier: GPLv3
+import adafruit_pathlib as pathlib
+
+# load included modules if we aren't installed on the root path
+if len(__file__.split("/")[:-1]) > 1:
+    if (modules_directory := pathlib.Path("/".join(__file__.split("/")[:-1])) / "lib").exists():
+        import sys
+        sys.path.append(str(modules_directory.absolute()))
+
 from array import array
 import sys
 import asyncio
@@ -19,7 +27,6 @@ import vectorio
 from adafruit_display_text.label import Label
 from adafruit_fruitjam.peripherals import request_display_config
 import adafruit_imageload
-import adafruit_pathlib as pathlib
 
 import gamepad
 from usb.core import USBError
@@ -43,7 +50,7 @@ GAME_SPEED_START = const(1)
 GAME_SPEED_MOD   = 0.98  # modifies the game speed when line is cleared
 WINDOW_WIDTH     = (SCREEN_WIDTH - GRID_WIDTH - 2) // 2 - WINDOW_GAP * 2
 FONT_HEIGHT      = terminalio.FONT.get_bounding_box()[1]
-NEOPIXELS        = False
+NEOPIXELS        = True
 
 TETROMINOS = [
     {
@@ -154,9 +161,13 @@ increment_loading_bar()  # display loading screen
 
 # read config
 launcher_config = {}
-if pathlib.Path("/launcher.conf.json").exists():
-    with open("/launcher.conf.json", "r") as f:
-        launcher_config = json.load(f)
+for directory in ("/", "/sd/", "/saves/"):
+    launcher_config_path = directory + "launcher.conf.json"
+    if pathlib.Path(launcher_config_path).exists():
+        with open(launcher_config_path, "r") as f:
+            launcher_config = launcher_config | json.load(f)
+if "audio" not in launcher_config:
+    launcher_config["audio"] = {}
 
 increment_loading_bar()
 
@@ -180,14 +191,20 @@ if tlv320_present:
     # set sample rate & bit depth
     dac.configure_clocks(sample_rate=32000, bit_depth=16)
 
-    if "audio" in launcher_config and launcher_config["audio"].get("output") == "speaker":
+    if launcher_config["audio"].get("output") == "speaker":
         # use speaker
         dac.speaker_output = True
-        dac.dac_volume = launcher_config["audio"].get("volume", 5)  # dB
+        dac.headphone_output = False
+        _volume = launcher_config["audio"].get("volume_override_danger", 
+            launcher_config["audio"].get("volume", 12))
+        dac.dac_volume = (_volume/20 * 86) - 63
     else:
         # use headphones
         dac.headphone_output = True
-        dac.dac_volume = launcher_config["audio"].get("volume", 0) if "audio" in launcher_config else 0  # dB
+        dac.speaker_output = False
+        _volume = launcher_config["audio"].get("volume_override_danger", 
+            launcher_config["audio"].get("volume", 7))
+        dac.dac_volume = (_volume/20 * 86) - 63
 
     # setup audio output
     audio = I2SOut(board.I2S_BCLK, board.I2S_WS, board.I2S_DIN)
@@ -1313,6 +1330,7 @@ def do_action(action:int) -> None:
         elif action == ACTION_QUIT:
             if gamepad_device is not None and not gamepad_device.device.is_kernel_driver_active(gamepad_device.interface):
                 gamepad_device.device.attach_kernel_driver(gamepad_device.interface)
+            neopixels.deinit()
             supervisor.reload()
         
         display.refresh()
@@ -1443,4 +1461,9 @@ text_group.hidden = False
 # initial display refresh
 display.refresh()
 
-asyncio.run(main())
+try:
+    asyncio.run(main())
+except KeyboardInterrupt:
+    neopixels.deinit()
+    supervisor.reload()
+    
