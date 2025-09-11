@@ -62,9 +62,13 @@ import adafruit_pathlib as pathlib
 def Playi2s(passedIn=""):
     # optional configuration file for speaker/headphone setting
     launcher_config = {}
-    if pathlib.Path("/launcher.conf.json").exists():
-        with open("/launcher.conf.json", "r") as f:
-            launcher_config = json.load(f)
+    for directory in ("/", "/sd/", "/saves/"):
+        launcher_config_path = directory + "launcher.conf.json"
+        if pathlib.Path(launcher_config_path).exists():
+            with open(launcher_config_path, "r") as f:
+                launcher_config = launcher_config | json.load(f)
+    if "audio" not in launcher_config:
+        launcher_config["audio"] = {}
 
     # Check if TLV320 DAC is connected
     if "I2C" in dir(board):  
@@ -83,24 +87,24 @@ def Playi2s(passedIn=""):
 
     if tlv320_present:
         dac = adafruit_tlv320.TLV320DAC3100(i2c)
-        dac.reset()
 
         # set sample rate & bit depth
         dac.configure_clocks(sample_rate=44100, bit_depth=16)
 
-        if "audio" in launcher_config:
-            if launcher_config["audio"].get("output") == "speaker":
-                # use speaker
-                dac.speaker_output = True
-                dac.dac_volume = launcher_config["audio"].get("volume",5)  # dB
-            else:
-                # use headphones
-                dac.headphone_output = True
-                dac.dac_volume = launcher_config["audio"].get("volume",0)  # dB
+        if launcher_config["audio"].get("output") == "speaker":
+            # use speaker
+            dac.speaker_output = True
+            dac.headphone_output = False
+            _volume = launcher_config["audio"].get("volume_override_danger", 
+                launcher_config["audio"].get("volume", 12))
+            dac.dac_volume = (_volume/20 * 86) - 63
         else:
-            # default to headphones
+            # use headphones
             dac.headphone_output = True
-            dac.dac_volume = 0  # dB
+            dac.speaker_output = False
+            _volume = launcher_config["audio"].get("volume_override_danger", 
+                launcher_config["audio"].get("volume", 7))
+            dac.dac_volume = (_volume/20 * 86) - 63
 
     audio_bus = None
     if 'I2S_BIT_CLOCK' in dir(board):
