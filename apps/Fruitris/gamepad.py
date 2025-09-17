@@ -88,8 +88,8 @@ def find_usb_device():
                 return ScanResult(dev, TYPE_POWERA_WIRED, 'PowerAWired', desc)
             elif dev_int0_info == (0xff, 0xff, 0xff, 0xff, 0x5d, 0x01):
                 return ScanResult(dev, TYPE_XINPUT, 'XInput', desc)
-            elif dev_int0_info == (0x00, 0x00, 0x00, 0x03, 0x01, 0x01):
-                return ScanResult(dev, TYPE_BOOT_KEYBOARD, 'BootKeyboard', desc)
+            #elif dev_int0_info == (0x00, 0x00, 0x00, 0x03, 0x01, 0x01):
+            #    return ScanResult(dev, TYPE_BOOT_KEYBOARD, 'BootKeyboard', desc)
             else:
                 return None
         except (ValueError, USBError) as e:
