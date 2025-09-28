@@ -21,4 +21,4 @@ Jukebox    ![Jukebox](https://github.com/RetiredWizard/Fruit-Jam-OS_MyApps/blob/
 
 [CPZ_Machine](https://github.com/ZContent/CPZ_Machine)    ![CPM_Machine](https://github.com/ZContent/CPZ_Machine/blob/main/icon.bmp)   
 
-**To Install:** Create a /apps/CPZ_Machine folder on the Fruit Jam and copy the CPZ_Machine repository contents to that folder.
+**To Install:** Create `/apps/CPZ_Machine` folder on the Fruit Jam and copy the CPZ_Machine repository contents to that folder.
