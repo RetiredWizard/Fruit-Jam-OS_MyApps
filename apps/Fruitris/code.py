@@ -13,7 +13,6 @@ if len(__file__.split("/")[:-1]) > 1:
 from array import array
 import sys
 import asyncio
-import board
 from displayio import Group, TileGrid, OnDiskBitmap, Palette
 from micropython import const
 import os
@@ -26,9 +25,7 @@ import vectorio
 from adafruit_display_text.label import Label
 import adafruit_fruitjam.peripherals
 import adafruit_imageload
-
-import gamepad
-from usb.core import USBError
+import relic_usb_host_gamepad
 
 try:
     adafruit_fruitjam.peripherals.request_display_config()  # attempt to use default display size
@@ -49,7 +46,6 @@ GAME_SPEED_START = const(1)
 GAME_SPEED_MOD   = 0.98  # modifies the game speed when line is cleared
 WINDOW_WIDTH     = (SCREEN_WIDTH - GRID_WIDTH - 2) // 2 - WINDOW_GAP * 2
 FONT_HEIGHT      = terminalio.FONT.get_bounding_box()[1]
-NEOPIXELS        = True
 
 TETROMINOS = [
     {
@@ -169,7 +165,7 @@ increment_loading_bar()
 
 # setup audio, buttons, and neopixels
 peripherals = adafruit_fruitjam.peripherals.Peripherals(
-    audio_output=(config.audio_output if config is not None else "headphones"),
+    audio_output=(config.audio_output if config is not None else "headphone"),
     safe_volume_limit=(config.audio_volume_override_danger if config is not None else 12),
     sample_rate=32000,
     bit_depth=16
@@ -455,22 +451,6 @@ def play_sfx(note:synthio.Note) -> None:
             if type(lfo) is synthio.LFO:
                 lfo.retrigger()
         synth.release_all_then_press(note)
-
-# configure hardware
-if "BUTTON1" in dir(board) and "BUTTON2" in dir(board) and "BUTTON3" in dir(board):
-    # I know this is a hack but until Fruitris is refactored to use peripherals.buttonx...
-    for button in peripherals._buttons:
-        button.deinit()
-    peripherals._buttons = None
-    from keypad import Keys
-    buttons = Keys((board.BUTTON1, board.BUTTON2, board.BUTTON3), value_when_pressed=False, pull=True)
-else:
-    buttons = None
-
-if NEOPIXELS and "NEOPIXEL" in dir(board):
-    neopixels = peripherals.neopixels
-elif NEOPIXELS and "NEOPIXELS" not in dir(board):
-    NEOPIXELS = False
    
 # load tiles
 def copy_palette(palette:Palette) -> Palette:
@@ -550,10 +530,10 @@ for i, color in drink_map:
 increment_loading_bar()
 
 # starting neopixels
-if NEOPIXELS:
-    for i in range(neopixels.n):
-        neopixels[i] = drink_map[neopixels.n - 1 - i][1]
-    neopixels.show()
+if peripherals.neopixels:
+    for i in range(peripherals.neopixels.n):
+        peripherals.neopixels[i] = drink_map[peripherals.neopixels.n - 1 - i][1]
+    peripherals.neopixels.show()
 
 increment_loading_bar()
 
@@ -1021,10 +1001,10 @@ def set_drink_level(value:float) -> None:
         drink_tg.pixel_shader[color[0]] = current_color if drink_value >= i else 0x000000
     
     # set neopixel level
-    if NEOPIXELS:
-        for i in range(neopixels.n):
-            neopixels[i] = apply_brightness(current_color, (value * neopixels.n) - (neopixels.n - 1 - i))
-        neopixels.show()
+    if peripherals.neopixels:
+        for i in range(peripherals.neopixels.n):
+            peripherals.neopixels[i] = apply_brightness(current_color, (value * peripherals.neopixels.n) - (peripherals.neopixels.n - 1 - i))
+        peripherals.neopixels.show()
 
 increment_loading_bar()
 
@@ -1074,13 +1054,13 @@ def get_next_tetromino() -> None:
 
     tetromino = Tetromino(next_tetromino.tetromino_index)
     tetromino.tile_x = (GRID_WIDTH - TETROMINO_SIZE) // 2  # center along x axis of grid
-    grid_container.append(tetromino)
 
     tetromino_indicator = Tetromino(tetromino.tetromino_index, offset=False, border_only=True)
     tetromino_indicator.tile_x = tetromino.tile_x
     update_tetromino_indicator_y()
     
     grid_container.append(tetromino_indicator)
+    grid_container.append(tetromino)
 
     next_tetromino.tetromino_index = get_random_tetromino_index()
 
@@ -1255,19 +1235,19 @@ ACTION_PAUSE     = const(5)
 ACTION_QUIT      = const(6)
 
 gamepad_map = (
-    (gamepad.A,      ACTION_ROTATE),
-    (gamepad.B,      ACTION_HARD_DROP),
-    (gamepad.DOWN,   ACTION_SOFT_DROP),
-    (gamepad.START,  ACTION_PAUSE),
-    (gamepad.SELECT, ACTION_QUIT),
-    (gamepad.LEFT,   ACTION_LEFT),
-    (gamepad.RIGHT,  ACTION_RIGHT),
-    (gamepad.UP,     ACTION_ROTATE),
+    ((relic_usb_host_gamepad.BUTTON_A,),                                                  ACTION_ROTATE),
+    ((relic_usb_host_gamepad.BUTTON_B,),                                                  ACTION_HARD_DROP),
+    ((relic_usb_host_gamepad.BUTTON_DOWN,),                                               ACTION_SOFT_DROP),
+    ((relic_usb_host_gamepad.BUTTON_START,),                                              ACTION_PAUSE),
+    ((relic_usb_host_gamepad.BUTTON_SELECT,),                                             ACTION_QUIT),
+    ((relic_usb_host_gamepad.BUTTON_LEFT, relic_usb_host_gamepad.BUTTON_JOYSTICK_LEFT),   ACTION_LEFT),
+    ((relic_usb_host_gamepad.BUTTON_RIGHT, relic_usb_host_gamepad.BUTTON_JOYSTICK_RIGHT), ACTION_RIGHT),
+    ((relic_usb_host_gamepad.BUTTON_UP, relic_usb_host_gamepad.BUTTON_JOYSTICK_UP),       ACTION_ROTATE),
 )
-gamepad_device = None
+gamepad = relic_usb_host_gamepad.Gamepad()
 
 def do_action(action:int) -> None:
-    global tetromino, last_drop_time, game_state, gamepad_device
+    global tetromino, last_drop_time, game_state, gamepad
     if action is not None:
         if game_state == STATE_PLAYING:
             if action == ACTION_ROTATE:
@@ -1314,66 +1294,56 @@ def do_action(action:int) -> None:
             play_song(False)
         elif game_state == STATE_WAITING and action != ACTION_QUIT:
             reset_game()
-        elif action == ACTION_QUIT:
-            if gamepad_device is not None and not gamepad_device.device.is_kernel_driver_active(gamepad_device.interface):
-                gamepad_device.device.attach_kernel_driver(gamepad_device.interface)
+        if action == ACTION_QUIT:
+            gamepad.disconnect()
             peripherals.deinit()
             supervisor.reload()
         
         display.refresh()
 
 async def gamepad_handler() -> None:
-    global gamepad_device, gamepad_map
+    global gamepad, gamepad_map
     while True:
-        try:
-            scan_result = gamepad.find_usb_device()
-            if scan_result is None:
-                await asyncio.sleep(.4)
-                continue
-            gamepad_device = gamepad.InputDevice(scan_result)
-
-            prev = 0
-            for data in gamepad_device.input_event_generator():
-                if data is not None and isinstance(data, int):
-                    diff = prev ^ data
-                    prev = data
-                    for button, action in gamepad_map:
-                        if diff & button and data & button:
-                            do_action(action)
-                await asyncio.sleep(1/30)
-
-        except (USBError, ValueError) as e:
-            await asyncio.sleep(.4)
-
-if buttons is not None:
-    
-    BUTTON_MAP = (
-        None,
-        ACTION_LEFT,       # button #1
-        ACTION_ROTATE,     # button #2
-        ACTION_PAUSE,      # button #1 & #2
-        ACTION_RIGHT,      # button #3
-        ACTION_HARD_DROP,  # button #1 & #3
-        ACTION_SOFT_DROP,  # button #2 & #3
-        ACTION_QUIT,       # button #1 & #2 & #3
-    )
-
-    async def button_handler() -> None:
-        global tetromino, buttons
-
-        button_pressed = 0
-
-        while True:
-
-            # check hardware buttons
-            if (event := buttons.events.get()):
+        if gamepad.update():
+            for event in gamepad.events:
                 if event.pressed:
-                    button_pressed += 1 << event.key_number
-                elif event.released and button_pressed:
-                    do_action(BUTTON_MAP[button_pressed])  # None will be ignored
-                    button_pressed = 0  # reset
+                    for buttons, action in gamepad_map:
+                        if event.key_number in buttons:
+                            do_action(action)
+                            break
+        await asyncio.sleep(1/30)
 
-            await asyncio.sleep(1/30)
+BUTTON_MAP = (
+    None,
+    ACTION_LEFT,       # button #1
+    ACTION_ROTATE,     # button #2
+    ACTION_PAUSE,      # button #1 & #2
+    ACTION_RIGHT,      # button #3
+    ACTION_HARD_DROP,  # button #1 & #3
+    ACTION_SOFT_DROP,  # button #2 & #3
+    ACTION_QUIT,       # button #1 & #2 & #3
+)
+
+async def button_handler() -> None:
+    global tetromino, buttons
+
+    previous_buttons_pressed = 0
+    while True:
+        # obtain bit mask of pressed buttons
+        buttons_pressed = 0
+        for i, value in enumerate((peripherals.button1, peripherals.button2, peripherals.button3)):
+            buttons_pressed |= value << i
+
+        # only process if the button state has changed
+        if buttons_pressed != previous_buttons_pressed:
+            # generate bit mask of the buttons which were changed
+            buttons_changed = buttons_pressed ^ previous_buttons_pressed
+            if buttons_changed & buttons_pressed == 0:  # the buttons that changed were released
+                do_action(BUTTON_MAP[previous_buttons_pressed])
+                buttons_changed = 0  # reset
+            previous_buttons_pressed = buttons_pressed
+
+        await asyncio.sleep(1/30)
 
 key_map = (
     ACTION_ROTATE,     # Up Arrow
@@ -1426,14 +1396,12 @@ async def keyboard_handler() -> None:
 
 
 async def main():
-    tasks = [
+    await asyncio.gather(
         asyncio.create_task(tetromino_handler()),
         asyncio.create_task(gamepad_handler()),
         asyncio.create_task(keyboard_handler()),
-    ]
-    if buttons is not None:
-        tasks.append(asyncio.create_task(button_handler()))
-    await asyncio.gather(*tasks)
+        asyncio.create_task(button_handler())
+    )
 
 # remove loading screen
 loading_group.remove(loading_text)
@@ -1451,6 +1419,7 @@ display.refresh()
 try:
     asyncio.run(main())
 except KeyboardInterrupt:
+    gamepad.disconnect()
     peripherals.deinit()
     raise KeyboardInterrupt
     
