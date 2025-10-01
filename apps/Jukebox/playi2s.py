@@ -96,15 +96,15 @@ def Playi2s(passedIn=""):
             dac.speaker_output = True
             dac.headphone_output = False
             _volume = launcher_config["audio"].get("volume_override_danger", 
-                launcher_config["audio"].get("volume", 12))
-            dac.dac_volume = (_volume/20 * 86) - 63
+                launcher_config["audio"].get("volume", .75))
+            dac.dac_volume = (_volume * 86) - 63
         else:
             # use headphones
             dac.headphone_output = True
             dac.speaker_output = False
             _volume = launcher_config["audio"].get("volume_override_danger", 
-                launcher_config["audio"].get("volume", 7))
-            dac.dac_volume = (_volume/20 * 86) - 63
+                launcher_config["audio"].get("volume", .75))
+            dac.dac_volume = (_volume * 86) - 63
 
     audio_bus = None
     if 'I2S_BIT_CLOCK' in dir(board):
