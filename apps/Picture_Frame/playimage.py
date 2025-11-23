@@ -126,12 +126,15 @@ def playimage(passedIn=""):
         if len(files) == 0:
             pictDir = '/sd/'
             files = [f for f in os.listdir('/sd') if f[-4:].upper() in [".BMP",".PNG",".JPG",".RLE",".GIF"]]
+        if len(files) == 0:
+            pictDir = '/sd/PictFrame/'
+            files = [f for f in os.listdir('/sd/PictFrame') if f[-4:].upper() in [".BMP",".PNG",".JPG",".RLE",".GIF"]]
 
     singleimage = False
     if len(files) == 1 and files[0][0] != '*':
         singleimage = True
     elif len(files) == 0:
-        input(f"\n\n\nNo images found in the app folder ({os.getcwd()}) or on the SD card (/sd).\n\nPress 'Enter' to close.\n\n")
+        input(f"\n\n\nNo images found in the app folder ({os.getcwd()}) or on the SD card (/sd or /sd/PictFrame).\n\nPress 'Enter' to close.\n\n")
         return
 
     fileindx = 0
@@ -159,9 +162,13 @@ def playimage(passedIn=""):
 
         if fname[-4:].upper() in [".BMP",".PNG",".JPG",".RLE"]:
 
-            bitmap, palette = adafruit_imageload.load( \
-                pictDir+fname, bitmap=displayio.Bitmap, palette=displayio.Palette)
-            
+            try:
+                bitmap, palette = adafruit_imageload.load( \
+                    pictDir+fname, bitmap=displayio.Bitmap, palette=displayio.Palette)
+            except RuntimeError as e:
+                print(f"Skipping {fname} - {e}")
+                continue
+
             scalefactor = display.width / bitmap.width
             if display.height/bitmap.height < scalefactor:
                 scalefactor = display.height/bitmap.height
