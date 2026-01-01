@@ -1,4 +1,4 @@
-# INTERNET WEATHER CLOCK
+# Picture Frame
 
 This will play all images (BMP, JPG, PNG, RLE, GIF) in the current directory
 or in the /sd/ directory if no images are found in the current directory.
