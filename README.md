@@ -21,8 +21,12 @@ Jukebox    ![Jukebox](https://github.com/RetiredWizard/Fruit-Jam-OS_MyApps/blob/
 
 [CPZ_Machine](https://github.com/ZContent/CPZ_Machine)    ![CPM_Machine](https://github.com/ZContent/CPZ_Machine/blob/main/icon.bmp)   
 
+**To Install:** Create `/apps/CPZ_Machine` folder on the Fruit Jam and copy the CPZ_Machine repository contents to that folder.  
+
 [Pac-Jam](https://github.com/RetiredWizard/pac-fruitjam)   ![Pac-Jam](https://github.com/RetiredWizard/pac-fruitjam/blob/main/images/icon.bmp)  
+
+**To Install:** Create `/apps/Pac_FruitJam` folder on the Fruit Jam and copy the pac-fruitjam repository contents to that folder.  
 
 [Moon Miner](https://github.com/ZContent/MoonMiner)        ![Moon Miner](https://github.com/ZContent/MoonMiner/blob/main/icon.bmp)  
 
-**To Install:** Create `/apps/CPZ_Machine` folder on the Fruit Jam and copy the CPZ_Machine repository contents to that folder.
+**To Install:** Create `/apps/MoonMiner` folder on the Fruit Jam and copy the MoonMiner repository contents to that folder.  
