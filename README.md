@@ -17,10 +17,12 @@ Jukebox    ![Jukebox](https://github.com/RetiredWizard/Fruit-Jam-OS_MyApps/blob/
 [No Step on Snek](https://hackaday.io/project/168815-no-step-on-snek)    ![no_step_on_snek](https://github.com/RetiredWizard/Fruit-Jam-OS_MyApps/blob/main/apps/No_step_on_snek/icon2.bmp)  
 
 
-[Pac-Jam](https://github.com/RetiredWizard/pac-fruitjam)   ![Pac-Jam](https://github.com/RetiredWizard/pac-fruitjam/blob/main/images/icon.bmp)  
-
 # Not included here but highly recommended
 
 [CPZ_Machine](https://github.com/ZContent/CPZ_Machine)    ![CPM_Machine](https://github.com/ZContent/CPZ_Machine/blob/main/icon.bmp)   
+
+[Pac-Jam](https://github.com/RetiredWizard/pac-fruitjam)   ![Pac-Jam](https://github.com/RetiredWizard/pac-fruitjam/blob/main/images/icon.bmp)  
+
+[Moon Miner](https://github.com/ZContent/MoonMiner)        ![Moon Miner](https://github.com/ZContent/MoonMiner/blob/main/icon.bmp)  
 
 **To Install:** Create `/apps/CPZ_Machine` folder on the Fruit Jam and copy the CPZ_Machine repository contents to that folder.
